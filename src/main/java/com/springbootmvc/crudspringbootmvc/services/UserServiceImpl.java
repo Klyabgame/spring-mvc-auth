@@ -50,4 +50,9 @@ public class UserServiceImpl implements UserService {
         user.setPassword(passwordEncoded);
         return this.userRepository.save(user);
     }
+
+    @Override
+    public boolean existsByUsername(String username) {
+        return userRepository.existsByUsername(username);
+    }
 }

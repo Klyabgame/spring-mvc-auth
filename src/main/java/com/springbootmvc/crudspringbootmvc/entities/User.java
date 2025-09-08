@@ -1,11 +1,17 @@
 package com.springbootmvc.crudspringbootmvc.entities;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.springbootmvc.crudspringbootmvc.validation.ExistsByUsername;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Entity
 @Table(name="users")
@@ -15,14 +21,19 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ExistsByUsername
     @Column(unique = true)
     @NotBlank
     @Size(min = 4, max = 12)
     private String username;
 
     @NotBlank
+    //@JsonIgnore
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
 
+
+    @JsonIgnoreProperties({"users","handler", "hibernateLazyInitializer"})
     @ManyToMany()
     @JoinTable(
             name = "users_roles",
@@ -31,6 +42,19 @@ public class User {
             uniqueConstraints = {@UniqueConstraint(columnNames = {"user_id","role_id"})}
     )
     private List<Role> roles;
+
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private boolean enabled;
+
+    @PrePersist
+    public void prePersist()
+    {
+        this.enabled=true;
+    }
+
+    public User() {
+        this.roles = new ArrayList<>();
+    }
 
     @Transient
     private boolean admin;
@@ -73,5 +97,25 @@ public class User {
 
     public void setAdmin(boolean admin) {
         this.admin = admin;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        User user = (User) o;
+        return Objects.equals(id, user.id) && Objects.equals(username, user.username);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, username);
     }
 }

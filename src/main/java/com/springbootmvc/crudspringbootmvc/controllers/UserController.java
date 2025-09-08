@@ -32,14 +32,20 @@ public class UserController {
     }
 
     @PostMapping
-    public ResponseEntity<User> create(@Valid @RequestBody User user, BindingResult result) {
+    public ResponseEntity<?> create(@Valid @RequestBody User user, BindingResult result) {
         if(result.hasFieldErrors()){
-            return
+            return validation(result);
         }
         return ResponseEntity.status(HttpStatus.CREATED).body( this.userService.save(user));
-
-
     }
+
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@Valid @RequestBody User user, BindingResult result) {
+        user.setAdmin(false);
+        return create(user,result);
+    }
+
+
 
     private ResponseEntity<?> validation(BindingResult result) {
         Map<String,String> errors = new HashMap<>();
