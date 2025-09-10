@@ -1,8 +1,11 @@
 package com.springbootmvc.crudspringbootmvc.security;
 
 import com.springbootmvc.crudspringbootmvc.security.filter.JwtAuthenticationFilter;
+import com.springbootmvc.crudspringbootmvc.security.filter.JwtValidationFilter;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -11,6 +14,12 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
+
+import java.util.Arrays;
 
 @Configuration
 public class SpringSecurityConfig {
@@ -36,12 +45,39 @@ public class SpringSecurityConfig {
         return  http.authorizeHttpRequests((authz)-> authz
                         .requestMatchers( HttpMethod.GET,"/users").permitAll()
                         .requestMatchers( HttpMethod.POST,"/users/register").permitAll()
+                        .requestMatchers( HttpMethod.POST,"/users").hasRole("ADMIN")
+                        .requestMatchers( HttpMethod.GET,"/users/products","/users/products/{id}").hasAnyRole("ADMIN","USER")
+                        .requestMatchers( HttpMethod.POST,"/users/products").hasRole("ADMIN")
+                        .requestMatchers( HttpMethod.PUT,"/users/products/{id}").hasRole("ADMIN")
+                        .requestMatchers( HttpMethod.DELETE,"/users/products/{id}").hasRole("ADMIN")
                         .anyRequest()
                         .authenticated())
                         .addFilter(new JwtAuthenticationFilter(authenticationManager()))
+                        .addFilter(new JwtValidationFilter(authenticationManager()))
                         .csrf(config -> config.disable())
+                        .cors(cors-> cors.configurationSource(corsConfigurationSource()))
                         .sessionManagement(managment -> managment.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                         .build();
 
+    }
+
+    @Bean
+    CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOriginPatterns(Arrays.asList("*"));
+        config.setAllowedMethods(Arrays.asList("GET","POST","PUT","DELETE"));
+        config.setAllowedHeaders(Arrays.asList("Authorization","Content-Type"));
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source= new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
+    }
+
+    @Bean
+    FilterRegistrationBean<CorsFilter> corsFilter() {
+        FilterRegistrationBean<CorsFilter> corsBean = new FilterRegistrationBean<>(new CorsFilter(corsConfigurationSource()));
+        corsBean.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        return corsBean;
     }
 }
